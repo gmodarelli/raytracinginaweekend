@@ -3,6 +3,7 @@
 #include "ray.h"
 #include "sphere.h"
 #include "float.h"
+#include "camera.h"
 
 vec3 color(sphere spheres[], int n, const ray& r) {
   hit_record rec;
@@ -30,13 +31,8 @@ int main() {
   int ny = 200;
   std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
-  vec3 lower_left_corner(-2.0, -1.0, -1.0);
-  vec3 horizontal(4.0, 0.0, 0.0);
-  vec3 vertical(0.0, 2.0, 0.0);
-  vec3 origin(0.0, 0.0, 0.0);
-
+  camera cam = default_camera();
   ray r;
-  r.origin = origin;
 
   sphere spheres[2];
   spheres[0].center = vec3(0, 0, -1);
@@ -48,7 +44,7 @@ int main() {
     for (int i = 0; i < nx; i++) {
       float u = float(i) / float(nx);
       float v = float(j) / float(ny);
-      r.direction = lower_left_corner + u * horizontal + v * vertical;
+      r = camera_get_ray(cam, u, v);
       vec3 col = color(spheres, 2, r);
       int ir = int(255.99 * col.r());
       int ig = int(255.99 * col.g());
