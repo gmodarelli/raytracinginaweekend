@@ -19,6 +19,8 @@ class vec3 {
     inline float g() const { return e[1]; }
     inline float b() const { return e[2]; }
 
+    inline vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
+
     inline vec3& operator+=(const vec3 &v2);
     inline vec3& operator/=(const float t);
 
