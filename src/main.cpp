@@ -4,17 +4,9 @@
 #include "sphere.h"
 #include "float.h"
 #include "camera.h"
+#include "material.h"
 
-vec3 random_point_in_unit_sphere() {
-  vec3 p;
-  do {
-    p = 2.0 * vec3(drand48(), drand48(), drand48()) - vec3(1, 1, 1);
-  } while (p.squared_length() >= 1.0);
-
-  return p;
-}
-
-vec3 color(sphere spheres[], int n, const ray& r) {
+vec3 color(sphere spheres[], int n, const ray& r, int depth) {
   hit_record rec;
   bool hit_anything = false;
   double closest_so_far = MAXFLOAT;
@@ -27,13 +19,14 @@ vec3 color(sphere spheres[], int n, const ray& r) {
   }
 
   if (hit_anything) {
-    vec3 target = rec.p + rec.normal + random_point_in_unit_sphere();
-    ray reflected_ray = {
-      rec.p,
-      target - rec.p
-    };
-
-    return 0.5 * color(spheres, n, reflected_ray);
+    ray scattered;
+    vec3 attenuation;
+    if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+      return attenuation * color(spheres, n, scattered, depth + 1);
+    }
+    else {
+      return vec3(0, 0, 0);
+    }
   } else {
     vec3 unit_direction = unit_vector(r.direction);
     float t = 0.5 * (unit_direction.y() + 1.0);
@@ -53,8 +46,10 @@ int main() {
   sphere spheres[2];
   spheres[0].center = vec3(0, 0, -1);
   spheres[0].radius = 0.5;
+  spheres[0].mat_ptr = new lambertian(vec3(0.8, 0.3, 0.3));
   spheres[1].center = vec3(0, -100.5, -1);
   spheres[1].radius = 100;
+  spheres[1].mat_ptr = new lambertian(vec3(0.8, 0.3, 0.0));
 
   for (int j = ny - 1; j >= 0; j--) {
     for (int i = 0; i < nx; i++) {
@@ -63,7 +58,7 @@ int main() {
         float u = float(i + drand48()) / float(nx);
         float v = float(j + drand48()) / float(ny);
         ray r = camera_get_ray(cam, u, v);
-        col += color(spheres, 2, r);
+        col += color(spheres, 2, r, 0);
       }
 
       col /= float(ns);

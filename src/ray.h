@@ -2,6 +2,8 @@
 #define RAY_H
 #include "vec3.h"
 
+class material;
+
 struct ray {
   vec3 origin;
   vec3 direction;
@@ -11,6 +13,7 @@ struct hit_record {
   float t;
   vec3 p;
   vec3 normal;
+  material *mat_ptr;
 };
 
 // This function returns a point along the 3D line defined by the ray,
