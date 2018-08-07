@@ -29,10 +29,11 @@ vec3 color(sphere spheres[], int n, const ray& r) {
 int main() {
   int nx = 400;
   int ny = 200;
+  // Samples per pixel
+  int ns = 100;
   std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
   camera cam = default_camera();
-  ray r;
 
   sphere spheres[2];
   spheres[0].center = vec3(0, 0, -1);
@@ -42,10 +43,15 @@ int main() {
 
   for (int j = ny - 1; j >= 0; j--) {
     for (int i = 0; i < nx; i++) {
-      float u = float(i) / float(nx);
-      float v = float(j) / float(ny);
-      r = camera_get_ray(cam, u, v);
-      vec3 col = color(spheres, 2, r);
+      vec3 col(0, 0, 0);
+      for (int s = 0; s < ns; s++) {
+        float u = float(i + drand48()) / float(nx);
+        float v = float(j + drand48()) / float(ny);
+        ray r = camera_get_ray(cam, u, v);
+        col += color(spheres, 2, r);
+      }
+
+      col /= float(ns);
       int ir = int(255.99 * col.r());
       int ig = int(255.99 * col.g());
       int ib = int(255.99 * col.b());
