@@ -7,6 +7,12 @@ struct ray {
   vec3 direction;
 };
 
+struct hit_record {
+  float t;
+  vec3 p;
+  vec3 normal;
+};
+
 // This function returns a point along the 3D line defined by the ray,
 // starting from its m_Origin towards its m_Direction.
 // Positive values of t will return points "in front" of the ray, while

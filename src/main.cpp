@@ -1,30 +1,28 @@
 #include <iostream>
 #include "vec3.h"
 #include "ray.h"
+#include "sphere.h"
+#include "float.h"
 
-float hit_sphere(const vec3& center, float radius, const ray& r) {
-  vec3 oc = r.origin - center;
-  float a = dot(r.direction, r.direction);
-  float b = 2.0 * dot(oc, r.direction);
-  float c = dot(oc, oc) - radius * radius;
-  float discriminant = b * b - 4 * a * c;
-  if (discriminant < 0) {
-    return -1.0;
+vec3 color(sphere spheres[], int n, const ray& r) {
+  hit_record rec;
+  bool hit_anything = false;
+  double closest_so_far = MAXFLOAT;
+  float t_min = 0.0;
+  for (int i = 0; i < n; i++) {
+    if(sphere_hit(spheres[i], r, t_min, closest_so_far, rec)) {
+      hit_anything = true;
+      closest_so_far = rec.t;
+    }
+  }
+
+  if (hit_anything) {
+    return 0.5 * vec3(rec.normal.x() + 1, rec.normal.y() + 1, rec.normal.z() + 1);
   } else {
-    return (-b - sqrt(discriminant)) / (2.0 * a);
+    vec3 unit_direction = unit_vector(r.direction);
+    float t = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
   }
-}
-
-vec3 color(const ray& r) {
-  float t = hit_sphere(vec3(0.0, 0.0, -1.0), 0.5, r);
-  if (t > 0.0) {
-    vec3 N = unit_vector(ray_point_at_parameter(r, t) - vec3(0, 0, -1));
-    return 0.5 * vec3(N.x() + 1, N.y() + 1, N.z() + 1);
-  }
-
-  vec3 unit_direction = unit_vector(r.direction);
-  t = 0.5 * (unit_direction.y() + 1.0);
-  return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
 }
 
 int main() {
@@ -36,15 +34,22 @@ int main() {
   vec3 horizontal(4.0, 0.0, 0.0);
   vec3 vertical(0.0, 2.0, 0.0);
   vec3 origin(0.0, 0.0, 0.0);
+
   ray r;
   r.origin = origin;
+
+  sphere spheres[2];
+  spheres[0].center = vec3(0, 0, -1);
+  spheres[0].radius = 0.5;
+  spheres[1].center = vec3(0, -100.5, -1);
+  spheres[1].radius = 100;
 
   for (int j = ny - 1; j >= 0; j--) {
     for (int i = 0; i < nx; i++) {
       float u = float(i) / float(nx);
       float v = float(j) / float(ny);
       r.direction = lower_left_corner + u * horizontal + v * vertical;
-      vec3 col = color(r);
+      vec3 col = color(spheres, 2, r);
       int ir = int(255.99 * col.r());
       int ig = int(255.99 * col.g());
       int ib = int(255.99 * col.b());
