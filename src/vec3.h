@@ -19,22 +19,6 @@ class vec3 {
     inline float g() const { return e[1]; }
     inline float b() const { return e[2]; }
 
-    // Operators
-    inline const vec3& operator+() const { return *this; }
-    inline vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
-    inline float operator[](int i) const { return e[i]; }
-    inline float& operator[](int i) { return e[i]; }
-
-    // TODO: Why are this functions declared here
-    // and defined down in the same file?
-    inline vec3& operator+=(const vec3 &v2);
-    inline vec3& operator-=(const vec3 &v2);
-    inline vec3& operator*=(const vec3 &v2);
-    inline vec3& operator/=(const vec3 &v2);
-
-    inline vec3& operator*=(const float t);
-    inline vec3& operator/=(const float t);
-
     inline float length() const { return sqrt(e[0] * e[0] + e[1] * e[1] + e[2] * e[2]); }
     inline float squared_length() const { return e[0] * e[0] + e[1] * e[1] + e[2] * e[2]; }
     // TODO: Why is this function declared here
@@ -43,59 +27,6 @@ class vec3 {
 
     float e[3];
 };
-
-inline vec3& vec3::operator+=(const vec3 &v) {
-  e[0] += v.e[0];
-  e[1] += v.e[1];
-  e[2] += v.e[2];
-
-  return *this;
-}
-
-inline vec3& vec3::operator-=(const vec3 &v) {
-  e[0] -= v.e[0];
-  e[1] -= v.e[1];
-  e[2] -= v.e[2];
-
-  return *this;
-}
-
-inline vec3& vec3::operator*=(const vec3 &v) {
-  e[0] *= v.e[0];
-  e[1] *= v.e[1];
-  e[2] *= v.e[2];
-
-  return *this;
-}
-
-inline vec3& vec3::operator/=(const vec3 &v) {
-  e[0] /= v.e[0];
-  e[1] /= v.e[1];
-  e[2] /= v.e[2];
-
-  return *this;
-}
-
-inline vec3& vec3::operator*=(const float t) {
-  e[0] *= t;
-  e[1] *= t;
-  e[2] *= t;
-
-  return *this;
-}
-
-inline vec3& vec3::operator/=(const float t) {
-  // TODO: is this for performance reasons?
-  // and why we are not doing the same for 
-  // inline vec3& operator/=(const vec3 &v2)?
-  float k = 1.0 / t;
-
-  e[0] *= k;
-  e[1] *= k;
-  e[2] *= k;
-
-  return *this;
-}
 
 inline void vec3::make_unit_vector() {
   float k = 1.0 / length();
