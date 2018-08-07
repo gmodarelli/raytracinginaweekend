@@ -5,11 +5,20 @@
 #include "float.h"
 #include "camera.h"
 
+vec3 random_point_in_unit_sphere() {
+  vec3 p;
+  do {
+    p = 2.0 * vec3(drand48(), drand48(), drand48()) - vec3(1, 1, 1);
+  } while (p.squared_length() >= 1.0);
+
+  return p;
+}
+
 vec3 color(sphere spheres[], int n, const ray& r) {
   hit_record rec;
   bool hit_anything = false;
   double closest_so_far = MAXFLOAT;
-  float t_min = 0.0;
+  float t_min = 0.001;
   for (int i = 0; i < n; i++) {
     if(sphere_hit(spheres[i], r, t_min, closest_so_far, rec)) {
       hit_anything = true;
@@ -18,7 +27,13 @@ vec3 color(sphere spheres[], int n, const ray& r) {
   }
 
   if (hit_anything) {
-    return 0.5 * vec3(rec.normal.x() + 1, rec.normal.y() + 1, rec.normal.z() + 1);
+    vec3 target = rec.p + rec.normal + random_point_in_unit_sphere();
+    ray reflected_ray = {
+      rec.p,
+      target - rec.p
+    };
+
+    return 0.5 * color(spheres, n, reflected_ray);
   } else {
     vec3 unit_direction = unit_vector(r.direction);
     float t = 0.5 * (unit_direction.y() + 1.0);
@@ -52,6 +67,9 @@ int main() {
       }
 
       col /= float(ns);
+      // Gamma correction
+      col = vec3(sqrt(col.r()), sqrt(col.g()), sqrt(col.b()));
+
       int ir = int(255.99 * col.r());
       int ig = int(255.99 * col.g());
       int ib = int(255.99 * col.b());
