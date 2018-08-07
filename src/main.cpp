@@ -43,13 +43,20 @@ int main() {
 
   camera cam = default_camera();
 
-  sphere spheres[2];
+  sphere spheres[4];
   spheres[0].center = vec3(0, 0, -1);
   spheres[0].radius = 0.5;
   spheres[0].mat_ptr = new lambertian(vec3(0.8, 0.3, 0.3));
   spheres[1].center = vec3(0, -100.5, -1);
   spheres[1].radius = 100;
-  spheres[1].mat_ptr = new lambertian(vec3(0.8, 0.3, 0.0));
+  spheres[1].mat_ptr = new lambertian(vec3(0.8, 0.8, 0.0));
+  spheres[2].center = vec3(1, 0, -1);
+  spheres[2].radius = 0.5;
+  spheres[2].mat_ptr = new metal(vec3(0.8, 0.6, 0.2), 0.3);
+  spheres[3].center = vec3(-1, 0, -1);
+  spheres[3].radius = 0.5;
+  spheres[3].mat_ptr = new metal(vec3(0.8, 0.8, 0.8), 1.0);
+
 
   for (int j = ny - 1; j >= 0; j--) {
     for (int i = 0; i < nx; i++) {
@@ -58,7 +65,7 @@ int main() {
         float u = float(i + drand48()) / float(nx);
         float v = float(j + drand48()) / float(ny);
         ray r = camera_get_ray(cam, u, v);
-        col += color(spheres, 2, r, 0);
+        col += color(spheres, 4, r, 0);
       }
 
       col /= float(ns);
