@@ -36,6 +36,8 @@ float schlick(float cosine, float ref_idx) {
 }
 
 // TODO: Replace abstract class and virtual function with a struct somehow
+// Might be worth reimplementing it following this Existence Based Processing approach
+// http://www.dataorienteddesign.com/dodmain/node4.html#SECTION00430000000000000000
 
 class material {
   public:

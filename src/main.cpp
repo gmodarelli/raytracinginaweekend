@@ -41,7 +41,7 @@ int main() {
   int ns = 100;
   std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
-  camera cam = default_camera();
+  camera cam = default_camera(vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), 45, float(nx) / float(ny));
 
   sphere spheres[5];
   spheres[0].center = vec3(0, 0, -1);

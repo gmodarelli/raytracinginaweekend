@@ -10,6 +10,27 @@ struct camera {
   vec3 vertical;
 };
 
+camera default_camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect) {
+  vec3 u, v, w;
+  // Converting degrees to radians
+  float theta = vfov * M_PI / 180;
+  float half_height = tan(theta / 2);
+  float half_width = aspect * half_height;
+
+  w = unit_vector(lookfrom - lookat);
+  u = unit_vector(cross(vup, w));
+  v = cross(w, u);
+
+  camera cam = {
+    lookfrom,
+    lookfrom - u * half_width - v * half_height - w,
+    2 * half_width * u,
+    2 * half_height * v
+  };
+  
+  return cam;
+}
+
 camera default_camera() {
   camera cam = {
     vec3(0.0, 0.0, 0.0),
