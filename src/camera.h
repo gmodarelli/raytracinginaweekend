@@ -8,9 +8,22 @@ struct camera {
   vec3 lower_left_corner;
   vec3 horizontal;
   vec3 vertical;
+  vec3 u;
+  vec3 v;
+  vec3 w;
+  float lens_radius;
 };
 
-camera default_camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect) {
+vec3 random_in_unit_disk() {
+  vec3 p;
+  do {
+    p = 2.0 * vec3(drand48(), drand48(), 0) - vec3(1, 1, 0);
+  } while (dot(p, p) >= 1.0);
+
+  return p;
+}
+
+camera default_camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect, float aperture, float focus_dist) {
   vec3 u, v, w;
   // Converting degrees to radians
   float theta = vfov * M_PI / 180;
@@ -23,30 +36,26 @@ camera default_camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float as
 
   camera cam = {
     lookfrom,
-    lookfrom - u * half_width - v * half_height - w,
-    2 * half_width * u,
-    2 * half_height * v
+    lookfrom - u * focus_dist * half_width - half_height * focus_dist * v - focus_dist * w,
+    2 * half_width * focus_dist * u,
+    2 * half_height * focus_dist * v,
+    u,
+    v,
+    w,
+    aperture / 2
   };
   
   return cam;
 }
 
-camera default_camera() {
-  camera cam = {
-    vec3(0.0, 0.0, 0.0),
-    vec3(-2.0, -1.0, -1.0),
-    vec3(4.0, 0.0, 0.0),
-    vec3(0.0, 2.0, 0.0)
-  };
-  
-  return cam;
-}
-
-ray camera_get_ray(const camera& cam, float u, float v) {
+ray camera_get_ray(const camera& cam, float s, float t) {
   ray r;
 
-  r.origin = cam.origin;
-  r.direction = cam.lower_left_corner + u * cam.horizontal + v * cam.vertical - cam.origin;
+  vec3 rd = cam.lens_radius * random_in_unit_disk();
+  vec3 offset = cam.u * rd.x() + cam.v * rd.y();
+
+  r.origin = cam.origin + offset;
+  r.direction = cam.lower_left_corner + s * cam.horizontal + t * cam.vertical - cam.origin - offset;
 
   return r;
 }
