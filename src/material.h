@@ -2,13 +2,13 @@
 #define MATERIAL_H
 
 #include "ray.h"
-
+#include "util.h"
 
 vec3 random_point_in_unit_sphere() {
   vec3 p;
   do {
-    p = 2.0 * vec3(drand48(), drand48(), drand48()) - vec3(1, 1, 1);
-  } while (p.squared_length() >= 1.0);
+    p = 2.0 * make_vec3(random_float(), random_float(), random_float()) - make_vec3(1, 1, 1);
+  } while (squared_length(p) >= 1.0);
 
   return p;
 }
@@ -35,94 +35,71 @@ float schlick(float cosine, float ref_idx) {
   return r0 + (1 - r0) * pow((1 - cosine), 5);
 }
 
-// TODO: Replace abstract class and virtual function with a struct somehow
-// Might be worth reimplementing it following this Existence Based Processing approach
-// http://www.dataorienteddesign.com/dodmain/node4.html#SECTION00430000000000000000
-
-class material {
-  public:
-    virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) = 0;
+struct Material {
+  enum Type { Lambert, Metal, Dielectric };
+  Type type;
+  vec3 albedo;
+  float ref_idx;
+  float fuzz;
 };
 
-class lambertian : public material {
-  public:
-    lambertian(const vec3& a) : albedo(a) {}
+bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) {
+  if (mat.type == Material::Lambert) {
+    vec3 target = rec.p + rec.normal + random_point_in_unit_sphere();
+    scattered.origin = rec.p;
+    scattered.direction = target - rec.p;
+    attenuation = mat.albedo;
 
-    virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) {
-      vec3 target = rec.p + rec.normal + random_point_in_unit_sphere();
+    return true;
+  }
+  else if (mat.type == Material::Metal) {
+    vec3 reflected = reflect(unit_vector(r_in.direction), rec.normal);
+    scattered.origin = rec.p;
+    scattered.direction = reflected + mat.fuzz * random_point_in_unit_sphere();
+    attenuation = mat.albedo;
+    float result = dot(scattered.direction, rec.normal);
+    return (result > 0);
+  }
+  else if (mat.type == Material::Dielectric) {
+    vec3 outward_normal;
+    vec3 reflected = reflect(r_in.direction, rec.normal);
+    float ni_over_nt;
+    attenuation = make_vec3(1.0, 1.0, 1.0);
+    vec3 refracted;
+    float reflect_prob;
+    float cosine;
+
+    if(dot(r_in.direction, rec.normal) > 0) {
+      outward_normal = make_vec3(-(rec.normal.x), -(rec.normal.y), -(rec.normal.z));
+      ni_over_nt = mat.ref_idx;
+      cosine = mat.ref_idx * dot(r_in.direction, rec.normal) / length(r_in.direction);
+    }
+    else {
+      outward_normal = rec.normal;
+      ni_over_nt = 1.0 / mat.ref_idx;
+      cosine = -dot(r_in.direction, rec.normal) / length(r_in.direction);
+    }
+
+    if (refract(r_in.direction, outward_normal, ni_over_nt, refracted)) {
+      reflect_prob = schlick(cosine, mat.ref_idx);
+    }
+    else {
+      reflect_prob = 1.0;
+    }
+
+    if (random_float() < reflect_prob) {
       scattered.origin = rec.p;
-      scattered.direction = target - rec.p;
-      attenuation = albedo;
-      return true;
+      scattered.direction = reflected;
     }
-
-    vec3 albedo;
-};
-
-class metal : public material {
-  public:
-    metal(const vec3& a, float f) : albedo(a) {
-      if (f < 1) fuzz = f;
-      else fuzz = 1;
-    }
-
-    virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) {
-      vec3 reflected = reflect(unit_vector(r_in.direction), rec.normal);
+    else {
       scattered.origin = rec.p;
-      scattered.direction = reflected + fuzz * random_point_in_unit_sphere();
-      attenuation = albedo;
-
-      return (dot(scattered.direction, rec.normal) > 0);
+      scattered.direction = refracted;
     }
 
-    vec3 albedo;
-    float fuzz;
-};
+    return true;
+  }
 
-class dielectric : public material {
-  public:
-    dielectric(float ri): ref_idx(ri) {}
-
-    virtual bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) {
-      vec3 outward_normal;
-      vec3 reflected = reflect(r_in.direction, rec.normal);
-      float ni_over_nt;
-      attenuation = vec3(1.0, 1.0, 1.0);
-      vec3 refracted;
-      float reflect_prob;
-      float cosine;
-
-      if(dot(r_in.direction, rec.normal) > 0) {
-        outward_normal = -rec.normal;
-        ni_over_nt = ref_idx;
-        cosine = ref_idx * dot(r_in.direction, rec.normal) / r_in.direction.length();
-      }
-      else {
-        outward_normal = rec.normal;
-        ni_over_nt = 1.0 / ref_idx;
-        cosine = -dot(r_in.direction, rec.normal) / r_in.direction.length();
-      }
-
-      if (refract(r_in.direction, outward_normal, ni_over_nt, refracted)) {
-        reflect_prob = schlick(cosine, ref_idx);
-      }
-      else {
-        reflect_prob = 1.0;
-      }
-
-      if (drand48() < reflect_prob) {
-        scattered.origin = rec.p;
-        scattered.direction = reflected;
-      }
-      else {
-        scattered.origin = rec.p;
-        scattered.direction = refracted;
-      }
-      
-      return true;
-    }
-
-    float ref_idx;
-};
+  return false;
+}
 
 #endif // MATERIAL_H

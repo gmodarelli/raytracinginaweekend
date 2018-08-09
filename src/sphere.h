@@ -3,12 +3,9 @@
 #include "vec3.h"
 #include "ray.h"
 
-class material;
-
 struct sphere {
   vec3 center;
   float radius;
-  material *mat_ptr;
 };
 
 bool sphere_hit(const sphere& s, const ray& r, float t_min, float t_max, hit_record& rec) {
@@ -24,7 +21,6 @@ bool sphere_hit(const sphere& s, const ray& r, float t_min, float t_max, hit_rec
       rec.t = temp;
       rec.p = ray_point_at_parameter(r, rec.t);
       rec.normal = (rec.p - s.center) / s.radius;
-      rec.mat_ptr = s.mat_ptr;
       return true;
     }
 
@@ -33,7 +29,6 @@ bool sphere_hit(const sphere& s, const ray& r, float t_min, float t_max, hit_rec
       rec.t = temp;
       rec.p = ray_point_at_parameter(r, rec.t);
       rec.normal = (rec.p - s.center) / s.radius;
-      rec.mat_ptr = s.mat_ptr;
       return true;
     }
   }

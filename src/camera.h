@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include "ray.h"
+#include "util.h"
 
 struct camera {
   vec3 origin;
@@ -17,7 +18,7 @@ struct camera {
 vec3 random_in_unit_disk() {
   vec3 p;
   do {
-    p = 2.0 * vec3(drand48(), drand48(), 0) - vec3(1, 1, 0);
+    p = 2.0 * make_vec3(random_float(), random_float(), 0) - make_vec3(1, 1, 0);
   } while (dot(p, p) >= 1.0);
 
   return p;
@@ -52,7 +53,7 @@ ray camera_get_ray(const camera& cam, float s, float t) {
   ray r;
 
   vec3 rd = cam.lens_radius * random_in_unit_disk();
-  vec3 offset = cam.u * rd.x() + cam.v * rd.y();
+  vec3 offset = cam.u * rd.x + cam.v * rd.y;
 
   r.origin = cam.origin + offset;
   r.direction = cam.lower_left_corner + s * cam.horizontal + t * cam.vertical - cam.origin - offset;
