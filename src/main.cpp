@@ -7,7 +7,7 @@
 #include "material.h"
 #include "util.h"
 
-vec3 color(sphere spheres[], Material materials[], int n, const ray& r, int depth) {
+vec3 color(Sphere spheres[], Material materials[], int n, const ray& r, int depth) {
   hit_record rec;
   bool hit_anything = false;
   double closest_so_far = MAXFLOAT;
@@ -40,9 +40,10 @@ vec3 color(sphere spheres[], Material materials[], int n, const ray& r, int dept
   }
 }
 
-void random_scene(int& spheres_count, sphere* spheres, Material* materials) {
-  spheres[0].center = make_vec3(0, -1000, 0);
+void random_scene(int& spheres_count, Sphere* spheres, Material* materials) {
+  spheres[0].center0 = make_vec3(0, -1000, 0);
   spheres[0].radius = 1000;
+  spheres[0].type = Sphere::Static;
   materials[0].type = Material::Lambert;
   materials[0].albedo = make_vec3(0.5, 0.5, 0.5);
   int max = 3;
@@ -56,19 +57,25 @@ void random_scene(int& spheres_count, sphere* spheres, Material* materials) {
       vec3 center = make_vec3(a + 0.9 * random_float(), 0.2, b + 0.9 * random_float());
       if (length(center - limit) > 0.9) {
         i += 1;
-        spheres[i].center = center;
+        spheres[i].center0 = center;
         spheres[i].radius = 0.2;
 
         if (choose_mat < 0.8) { // diffuse
+          spheres[i].type = Sphere::Moving;
+          spheres[i].center1 = center + make_vec3(0, 0.5 * random_float(), 0);
+          spheres[i].time0 = 0.0;
+          spheres[i].time1 = 1.0;
           materials[i].type = Material::Lambert;
           materials[i].albedo = make_vec3(random_float() * random_float(), random_float() * random_float(), random_float() * random_float());
         }
         else if (choose_mat < 0.95) { // metal
+          spheres[i].type = Sphere::Static;
           materials[i].type = Material::Metal;
           materials[i].albedo = make_vec3(0.5 * (1.0 + random_float()), 0.5 * (1.0 + random_float()), 0.5 * (1.0 + random_float()));
           materials[i].fuzz = 0.5 * random_float();
         }
         else {
+          spheres[i].type = Sphere::Static;
           materials[i].type = Material::Dielectric;
           materials[i].ref_idx = 1.5; 
         }
@@ -77,21 +84,24 @@ void random_scene(int& spheres_count, sphere* spheres, Material* materials) {
   }
 
   i += 1;
-  spheres[i].center = make_vec3(0, 1, 0);
+  spheres[i].center0 = make_vec3(0, 1, 0);
   spheres[i].radius = 1.0;
+  spheres[i].type = Sphere::Static;
   materials[i].type = Material::Dielectric;
   materials[i].ref_idx = 1.5;
 
   i += 1;
-  spheres[i].center = make_vec3(-4, 1, 0);
+  spheres[i].center0 = make_vec3(-4, 1, 0);
   spheres[i].radius = 1.0;
+  spheres[i].type = Sphere::Static;
   materials[i].type = Material::Lambert;
   vec3 albedo = {0.4, 0.2, 0.1};
   materials[i].albedo = albedo;
 
   i += 1;
-  spheres[i].center = make_vec3(4, 1, 0);
+  spheres[i].center0 = make_vec3(4, 1, 0);
   spheres[i].radius = 1.0;
+  spheres[i].type = Sphere::Static;
   materials[i].type = Material::Metal;
   materials[i].albedo = make_vec3(0.7, 0.6, 0.5);
   materials[i].fuzz = 0.0;
@@ -112,10 +122,10 @@ int main() {
   float dist_to_focus = 10.0;
   float aperture = 0.1;
 
-  camera cam = default_camera(lookfrom, lookat, up, 20, float(nx) / float(ny), aperture, dist_to_focus);
+  camera cam = default_camera(lookfrom, lookat, up, 20, float(nx) / float(ny), aperture, dist_to_focus, 0.0, 1.0);
 
   int spheres_count = 50;
-  sphere spheres[spheres_count + 1];
+  Sphere spheres[spheres_count + 1];
   Material materials[spheres_count + 1];
   random_scene(spheres_count, spheres, materials);
 

@@ -13,6 +13,8 @@ struct camera {
   vec3 v;
   vec3 w;
   float lens_radius;
+  float time0;
+  float time1;
 };
 
 vec3 random_in_unit_disk() {
@@ -24,7 +26,7 @@ vec3 random_in_unit_disk() {
   return p;
 }
 
-camera default_camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect, float aperture, float focus_dist) {
+camera default_camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect, float aperture, float focus_dist, float time0, float time1) {
   vec3 u, v, w;
   // Converting degrees to radians
   float theta = vfov * M_PI / 180;
@@ -43,7 +45,9 @@ camera default_camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float as
     u,
     v,
     w,
-    aperture / 2
+    aperture / 2,
+    time0,
+    time1
   };
   
   return cam;
@@ -55,8 +59,11 @@ ray camera_get_ray(const camera& cam, float s, float t) {
   vec3 rd = cam.lens_radius * random_in_unit_disk();
   vec3 offset = cam.u * rd.x + cam.v * rd.y;
 
+  float time = cam.time0 + random_float() * (cam.time1 - cam.time0);
+
   r.origin = cam.origin + offset;
   r.direction = cam.lower_left_corner + s * cam.horizontal + t * cam.vertical - cam.origin - offset;
+  r.time = time;
 
   return r;
 }

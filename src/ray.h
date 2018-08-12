@@ -5,6 +5,7 @@
 struct ray {
   vec3 origin;
   vec3 direction;
+  float time;
 };
 
 struct hit_record {
