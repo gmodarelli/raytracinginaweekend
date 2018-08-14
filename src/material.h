@@ -3,6 +3,7 @@
 
 #include "ray.h"
 #include "util.h"
+#include "texture.h"
 
 vec3 random_point_in_unit_sphere() {
   vec3 p;
@@ -38,7 +39,7 @@ float schlick(float cosine, float ref_idx) {
 struct Material {
   enum Type { Lambert, Metal, Dielectric };
   Type type;
-  vec3 albedo;
+  Texture albedo;
   float ref_idx;
   float fuzz;
 };
@@ -49,7 +50,7 @@ bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& 
     scattered.origin = rec.p;
     scattered.direction = target - rec.p;
     scattered.time = r_in.time;
-    attenuation = mat.albedo;
+    attenuation = texture_value(mat.albedo, 0, 0, rec.p);
 
     return true;
   }
@@ -58,7 +59,7 @@ bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& 
     scattered.origin = rec.p;
     scattered.direction = reflected + mat.fuzz * random_point_in_unit_sphere();
     scattered.time = r_in.time;
-    attenuation = mat.albedo;
+    attenuation = texture_value(mat.albedo, 0, 0, rec.p);
     float result = dot(scattered.direction, rec.normal);
     return (result > 0);
   }

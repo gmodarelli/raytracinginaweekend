@@ -5,6 +5,7 @@
 #include "float.h"
 #include "camera.h"
 #include "material.h"
+#include "texture.h"
 #include "util.h"
 #include <limits>
 
@@ -41,13 +42,13 @@ vec3 color(Sphere spheres[], Material materials[], int n, const ray& r, int dept
   }
 }
 
-void random_scene(int& spheres_count, Sphere* spheres, Material* materials) {
+void random_scene(int& spheres_count, Sphere* spheres, Material* materials, Texture* odd, Texture* even) {
   spheres[0].center0 = make_vec3(0, -1000, 0);
   spheres[0].radius = 1000;
   spheres[0].type = Sphere::Static;
   materials[0].type = Material::Lambert;
-  materials[0].albedo = make_vec3(0.5, 0.5, 0.5);
-  int max = 3;
+  materials[0].albedo = {Texture::Checker, make_vec3(0.0, 0.0, 0.0), odd, even};
+  int max = 11;
 
   int i = 1;
   // TODO: find a better name
@@ -67,12 +68,12 @@ void random_scene(int& spheres_count, Sphere* spheres, Material* materials) {
           spheres[i].time0 = 0.0;
           spheres[i].time1 = 1.0;
           materials[i].type = Material::Lambert;
-          materials[i].albedo = make_vec3(random_float() * random_float(), random_float() * random_float(), random_float() * random_float());
+          materials[i].albedo = {Texture::Constant, make_vec3(random_float() * random_float(), random_float() * random_float(), random_float() * random_float()), nullptr, nullptr};
         }
         else if (choose_mat < 0.95) { // metal
           spheres[i].type = Sphere::Static;
           materials[i].type = Material::Metal;
-          materials[i].albedo = make_vec3(0.5 * (1.0 + random_float()), 0.5 * (1.0 + random_float()), 0.5 * (1.0 + random_float()));
+          materials[i].albedo = {Texture::Constant, make_vec3(0.5 * (1.0 + random_float()), 0.5 * (1.0 + random_float()), 0.5 * (1.0 + random_float())), nullptr, nullptr};
           materials[i].fuzz = 0.5 * random_float();
         }
         else {
@@ -96,25 +97,24 @@ void random_scene(int& spheres_count, Sphere* spheres, Material* materials) {
   spheres[i].radius = 1.0;
   spheres[i].type = Sphere::Static;
   materials[i].type = Material::Lambert;
-  vec3 albedo = {0.4, 0.2, 0.1};
-  materials[i].albedo = albedo;
+  materials[i].albedo = {Texture::Constant, make_vec3(0.4, 0.2, 0.1), nullptr, nullptr};
 
   i += 1;
   spheres[i].center0 = make_vec3(4, 1, 0);
   spheres[i].radius = 1.0;
   spheres[i].type = Sphere::Static;
   materials[i].type = Material::Metal;
-  materials[i].albedo = make_vec3(0.7, 0.6, 0.5);
+  materials[i].albedo = {Texture::Constant, make_vec3(0.7, 0.6, 0.5), nullptr, nullptr};
   materials[i].fuzz = 0.0;
   
   spheres_count = i;
 }
 
 int main() {
-  int nx = 800;
-  int ny = 600;
+  int nx = 1280;
+  int ny = 800;
   // Samples per pixel
-  int ns = 20;
+  int ns = 100;
   std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
   vec3 lookfrom = {13, 2, 3};
@@ -125,10 +125,13 @@ int main() {
 
   camera cam = default_camera(lookfrom, lookat, up, 20, float(nx) / float(ny), aperture, dist_to_focus, 0.0, 1.0);
 
-  int spheres_count = 50;
-  Sphere spheres[51];
-  Material materials[51];
-  random_scene(spheres_count, spheres, materials);
+  int spheres_count = 500;
+  Sphere spheres[501];
+  Material materials[501];
+
+  Texture texture_odd = { Texture::Constant, make_vec3(0.2, 0.3, 0.1), nullptr, nullptr };
+  Texture texture_even = { Texture::Constant, make_vec3(0.9, 0.9, 0.9), nullptr, nullptr };
+  random_scene(spheres_count, spheres, materials, &texture_odd, &texture_even);
 
   for (int j = ny - 1; j >= 0; j--) {
     for (int i = 0; i < nx; i++) {
