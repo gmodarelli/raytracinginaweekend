@@ -8,8 +8,13 @@
 #include "texture.h"
 #include "util.h"
 #include <limits>
+#include <chrono>
 
-vec3 color(Sphere spheres[], Material materials[], int n, const ray& r, int depth) {
+const int max_depth = 10;
+const int samples_per_pixel = 2;
+
+vec3 trace(Sphere spheres[], Material materials[], int n, const ray& r, int depth, int& inoutRaycount) {
+    ++inoutRaycount;
   hit_record rec;
   bool hit_anything = false;
   float closest_so_far = std::numeric_limits<float>::max();
@@ -26,8 +31,8 @@ vec3 color(Sphere spheres[], Material materials[], int n, const ray& r, int dept
   if (hit_anything) {
     ray scattered;
     vec3 attenuation;
-    if (depth < 50 && scatter(materials[sphere_hit_id], r, rec, attenuation, scattered)) {
-      return attenuation * color(spheres, materials, n, scattered, depth + 1);
+    if (depth < max_depth && scatter(materials[sphere_hit_id], r, rec, attenuation, scattered)) {
+      return attenuation * trace(spheres, materials, n, scattered, depth + 1, inoutRaycount);
     }
     else {
       vec3 black = {0, 0, 0};
@@ -48,7 +53,7 @@ void random_scene(int& spheres_count, Sphere* spheres, Material* materials, Text
   spheres[0].type = Sphere::Static;
   materials[0].type = Material::Lambert;
   materials[0].albedo = {Texture::Checker, make_vec3(0.0, 0.0, 0.0), odd, even};
-  int max = 11;
+  int max = 1;
 
   int i = 1;
   // TODO: find a better name
@@ -111,10 +116,9 @@ void random_scene(int& spheres_count, Sphere* spheres, Material* materials, Text
 }
 
 int main() {
-  int nx = 1280;
-  int ny = 800;
-  // Samples per pixel
-  int ns = 100;
+  int nx = 400;
+  int ny = 200;
+
   std::cout << "P3\n" << nx << " " << ny << "\n255\n";
 
   vec3 lookfrom = {13, 2, 3};
@@ -125,25 +129,35 @@ int main() {
 
   camera cam = default_camera(lookfrom, lookat, up, 20, float(nx) / float(ny), aperture, dist_to_focus, 0.0, 1.0);
 
-  int spheres_count = 500;
-  Sphere spheres[501];
-  Material materials[501];
+  int spheres_count = 50;
+  Sphere spheres[51];
+  Material materials[51];
 
   Texture texture_odd = { Texture::Constant, make_vec3(0.2, 0.3, 0.1), nullptr, nullptr };
   Texture texture_even = { Texture::Constant, make_vec3(0.9, 0.9, 0.9), nullptr, nullptr };
+  auto scene_t0 = std::chrono::high_resolution_clock::now();
+
   random_scene(spheres_count, spheres, materials, &texture_odd, &texture_even);
+
+  auto scene_t1 = std::chrono::high_resolution_clock::now();
+
+  auto scene_duration = std::chrono::duration_cast<std::chrono::microseconds>(scene_t1 - scene_t0);
+  std::cerr << "Scene built in " << scene_duration.count() << "us" << std::endl;
+
+  int rayCount = 0;
+  auto t0 = std::chrono::high_resolution_clock::now();
 
   for (int j = ny - 1; j >= 0; j--) {
     for (int i = 0; i < nx; i++) {
       vec3 tmp_col = {0, 0, 0};
-      for (int s = 0; s < ns; s++) {
+      for (int s = 0; s < samples_per_pixel; s++) {
         float u = float(i + random_float()) / float(nx);
         float v = float(j + random_float()) / float(ny);
         ray r = camera_get_ray(cam, u, v);
-        tmp_col = tmp_col + color(spheres, materials, spheres_count + 1, r, 0);
+        tmp_col = tmp_col + trace(spheres, materials, spheres_count + 1, r, 0, rayCount);
       }
 
-      tmp_col = tmp_col / float(ns);
+      tmp_col = tmp_col / float(samples_per_pixel);
       // Gamma correction
       vec3 col = {sqrt(tmp_col.x), sqrt(tmp_col.y), sqrt(tmp_col.z)};
 
@@ -154,4 +168,11 @@ int main() {
       std::cout << ir << " " << ig << " " << ib << "\n";
     }
   }
+
+  auto t1 = std::chrono::high_resolution_clock::now();
+
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
+  std::cerr << "Traced rays: " << rayCount << std::endl;
+  std::cerr << "Duration: " << duration.count() << "ms" << std::endl;
+  std::cerr << "MRays/s: " << (rayCount / duration.count() *  1.0e-3f) << std::endl;
 }
