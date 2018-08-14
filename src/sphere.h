@@ -10,6 +10,7 @@ struct Sphere {
   vec3 center0;
   vec3 center1;
   float radius;
+  float inverse_radius;
   float time0;
   float time1;
 };
@@ -32,22 +33,24 @@ bool sphere_hit(const Sphere& s, const ray& r, float t_min, float t_max, hit_rec
   float a = dot(r.direction, r.direction);
   float b = dot(oc, r.direction);
   float c = dot(oc, oc) - s.radius * s.radius;
-  float discriminant = b * b - a * c;
+  float discriminant_squared = b * b - a * c;
 
-  if (discriminant > 0) {
-    float temp = (-b - sqrt(discriminant)) / a;
+  if (discriminant_squared > 0) {
+      float discriminant = sqrt(discriminant_squared);
+
+    float temp = (-b - discriminant) / a;
     if (temp < t_max && temp > t_min) {
       rec.t = temp;
       rec.p = ray_point_at_parameter(r, rec.t);
-      rec.normal = (rec.p - center) / s.radius;
+      rec.normal = (rec.p - center) * s.inverse_radius;
       return true;
     }
 
-    temp = (-b + sqrt(discriminant)) / a;
+    temp = (-b + discriminant) / a;
     if (temp < t_max && temp > t_min) {
       rec.t = temp;
       rec.p = ray_point_at_parameter(r, rec.t);
-      rec.normal = (rec.p - center) / s.radius;
+      rec.normal = (rec.p - center) * s.inverse_radius;
       return true;
     }
   }
