@@ -6,11 +6,12 @@
 #include "camera.h"
 #include "material.h"
 #include "util.h"
+#include <limits>
 
 vec3 color(Sphere spheres[], Material materials[], int n, const ray& r, int depth) {
   hit_record rec;
   bool hit_anything = false;
-  double closest_so_far = MAXFLOAT;
+  float closest_so_far = std::numeric_limits<float>::max();
   float t_min = 0.001;
   int sphere_hit_id;
   for (int i = 0; i < n; i++) {
@@ -110,8 +111,8 @@ void random_scene(int& spheres_count, Sphere* spheres, Material* materials) {
 }
 
 int main() {
-  int nx = 400;
-  int ny = 200;
+  int nx = 800;
+  int ny = 600;
   // Samples per pixel
   int ns = 20;
   std::cout << "P3\n" << nx << " " << ny << "\n255\n";
@@ -125,8 +126,8 @@ int main() {
   camera cam = default_camera(lookfrom, lookat, up, 20, float(nx) / float(ny), aperture, dist_to_focus, 0.0, 1.0);
 
   int spheres_count = 50;
-  Sphere spheres[spheres_count + 1];
-  Material materials[spheres_count + 1];
+  Sphere spheres[51];
+  Material materials[51];
   random_scene(spheres_count, spheres, materials);
 
   for (int j = ny - 1; j >= 0; j--) {

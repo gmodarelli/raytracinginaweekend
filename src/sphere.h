@@ -2,6 +2,7 @@
 #define SPHERE_H
 #include "vec3.h"
 #include "ray.h"
+#include "aabb.h"
 
 struct Sphere {
   enum Type { Static, Moving };
@@ -52,6 +53,18 @@ bool sphere_hit(const Sphere& s, const ray& r, float t_min, float t_max, hit_rec
   }
 
   return false;
+}
+
+bool sphere_bouding_box(const Sphere& s, float t0, float t1, AABB& box) {
+    if (s.type == Sphere::Static) {
+        box = make_aabb(s.center0 - make_vec3(s.radius, s.radius, s.radius), s.center0 + make_vec3(s.radius, s.radius, s.radius));
+    } else if (s.type == Sphere::Moving) {
+        AABB box0 = make_aabb(s.center0 - make_vec3(s.radius, s.radius, s.radius), s.center0 + make_vec3(s.radius, s.radius, s.radius));
+        AABB box1 = make_aabb(s.center1 - make_vec3(s.radius, s.radius, s.radius), s.center1 + make_vec3(s.radius, s.radius, s.radius));
+        box = surrounding_box(box0, box1);
+    }
+
+    return true;
 }
 
 #endif // SPHERE_H

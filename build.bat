@@ -1,5 +1,5 @@
 pushd build
 
-cl -Zi ../src/main.cpp
+cl /Zi ../src/main.cpp
 
 popd
