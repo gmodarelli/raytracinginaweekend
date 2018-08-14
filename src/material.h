@@ -49,7 +49,6 @@ bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& 
     vec3 target = rec.p + rec.normal + random_point_in_unit_sphere();
     scattered.origin = rec.p;
     scattered.direction = target - rec.p;
-    scattered.time = r_in.time;
     attenuation = texture_value(mat.albedo, 0, 0, rec.p);
 
     return true;
@@ -58,7 +57,6 @@ bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& 
     vec3 reflected = reflect(unit_vector(r_in.direction), rec.normal);
     scattered.origin = rec.p;
     scattered.direction = reflected + mat.fuzz * random_point_in_unit_sphere();
-    scattered.time = r_in.time;
     attenuation = texture_value(mat.albedo, 0, 0, rec.p);
     float result = dot(scattered.direction, rec.normal);
     return (result > 0);
@@ -93,12 +91,10 @@ bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& 
     if (random_float() < reflect_prob) {
       scattered.origin = rec.p;
       scattered.direction = reflected;
-      scattered.time = r_in.time;
     }
     else {
       scattered.origin = rec.p;
       scattered.direction = refracted;
-      scattered.time = r_in.time;
     }
 
     return true;

@@ -2,72 +2,59 @@
 #define SPHERE_H
 #include "vec3.h"
 #include "ray.h"
-#include "aabb.h"
 
-struct Sphere {
-  enum Type { Static, Moving };
-  Type type;
-  vec3 center0;
-  vec3 center1;
-  float radius;
-  float inverse_radius;
-  float time0;
-  float time1;
+struct SpheresSoA {
+    vec3* center;
+    float* radius;
+    float* inverse_radius;
 };
 
+SpheresSoA SpheresSoAInit(int count) {
+    SpheresSoA spheres;
+    spheres.center = new vec3[count];
+    spheres.radius = new float[count];
+    spheres.inverse_radius = new float[count];
 
-vec3 moving_sphere_center(const Sphere& sphere, float time) {
-  return sphere.center0 + ((time - sphere.time0) / (sphere.time1 - sphere.time0)) * (sphere.center1 - sphere.center0);
+    return spheres;
 }
 
-bool sphere_hit(const Sphere& s, const ray& r, float t_min, float t_max, hit_record& rec) {
-  vec3 center;
+bool hit_spheres(const SpheresSoA& spheres, int spheres_count, const ray& r, float t_min, float t_max, hit_record& rec, int& outId) {
+    int id = -1;
+    float closest_so_far = t_max;
 
-  if (s.type == Sphere::Static) {
-    center = s.center0;
-  } else if (s.type == Sphere::Moving) {
-    center = moving_sphere_center(s, r.time);
-  }
+    for (int i = 0; i < spheres_count; i++) {
+        vec3 oc = r.origin - spheres.center[i];
+        float a = dot(r.direction, r.direction);
+        float b = dot(oc, r.direction);
+        float c = dot(oc, oc) - spheres.radius[i] * spheres.radius[i];
+        float discriminant_squared = b * b - a * c;
 
-  vec3 oc = r.origin - center;
-  float a = dot(r.direction, r.direction);
-  float b = dot(oc, r.direction);
-  float c = dot(oc, oc) - s.radius * s.radius;
-  float discriminant_squared = b * b - a * c;
+        if (discriminant_squared > 0) {
+            float discriminant = sqrt(discriminant_squared);
 
-  if (discriminant_squared > 0) {
-      float discriminant = sqrt(discriminant_squared);
+            float t = (-b - discriminant) / a;
+            if (t <= t_min) {
+                t = (-b + discriminant) / a;
+            }
 
-    float temp = (-b - discriminant) / a;
-    if (temp < t_max && temp > t_min) {
-      rec.t = temp;
-      rec.p = ray_point_at_parameter(r, rec.t);
-      rec.normal = (rec.p - center) * s.inverse_radius;
-      return true;
+            if (t < closest_so_far && t > t_min) {
+                closest_so_far = t;
+                id = i;
+            }
+        }
     }
 
-    temp = (-b + discriminant) / a;
-    if (temp < t_max && temp > t_min) {
-      rec.t = temp;
-      rec.p = ray_point_at_parameter(r, rec.t);
-      rec.normal = (rec.p - center) * s.inverse_radius;
-      return true;
-    }
-  }
+    vec3 center;
 
-  return false;
-}
-
-bool sphere_bouding_box(const Sphere& s, float t0, float t1, AABB& box) {
-    if (s.type == Sphere::Static) {
-        box = make_aabb(s.center0 - make_vec3(s.radius, s.radius, s.radius), s.center0 + make_vec3(s.radius, s.radius, s.radius));
-    } else if (s.type == Sphere::Moving) {
-        AABB box0 = make_aabb(s.center0 - make_vec3(s.radius, s.radius, s.radius), s.center0 + make_vec3(s.radius, s.radius, s.radius));
-        AABB box1 = make_aabb(s.center1 - make_vec3(s.radius, s.radius, s.radius), s.center1 + make_vec3(s.radius, s.radius, s.radius));
-        box = surrounding_box(box0, box1);
+    if (id != -1) {
+        rec.t = closest_so_far;
+        rec.p = ray_point_at_parameter(r, rec.t);
+        rec.normal = (rec.p - spheres.center[id]) * spheres.inverse_radius[id];
+        outId = id;
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 #endif // SPHERE_H
