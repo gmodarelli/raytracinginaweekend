@@ -9,17 +9,20 @@
 #include "util.h"
 #include <chrono>
 
-const int image_width = 800;
-const int image_height = 600;
+const int image_width = 400;
+const int image_height = 200;
 const float inverse_image_width = 1.0f / (float)image_width;
 const float inverse_image_height = 1.0f / (float)image_height;
 const int max_depth = 50;
-const int samples_per_pixel = 100;
+const int samples_per_pixel = 20;
 
 const float minT = 0.001f;
 const float maxT = 1.0e7f;
 
-const int max_spheres = 500;
+const int max_spheres = 50;
+const vec3 light_center = {0.0f, 3.0f, 0.0f};
+const float light_radius = 1.0f;
+const float light_area = 4.0f * M_PI * light_radius;
 
 vec3 trace_spheres(Spheres& spheres, Material materials[], int n, const ray& r, int depth, int& inoutRaycount) {
     ++inoutRaycount;
@@ -32,6 +35,26 @@ vec3 trace_spheres(Spheres& spheres, Material materials[], int n, const ray& r, 
         vec3 emitted = material_emit(materials[hitId], rec.u, rec.v, rec.p);
         float pdf;
         if (depth < max_depth && material_scatter(materials[hitId], r, rec, attenuation, scattered, pdf)) {
+            // Compute a 3D point on the lower hemisphere of the light source
+            // The light source is the sphere at index 1 in the Spheres struct 
+            // generated in the random_scene function.
+            // The center of that sphere is (0.0f, 3.0f, 0.0f) and its radius 1.0f
+            // For test sake, we'll point everything to the center of the sphere
+            // and later we'll try with a point on its surface
+            vec3 to_light = light_center - rec.p;
+            float distance_squared = squared_length(to_light);
+            vec3 to_light_unit = unit_vector(to_light);
+            if (dot(to_light_unit, rec.normal) < 0)
+                return emitted;
+
+            float light_cosine = fabs(to_light_unit.y);
+            if (light_cosine < 0.000001f)
+                return emitted;
+
+            pdf = distance_squared / (light_cosine * light_area);
+            scattered.origin = rec.p;
+            scattered.direction = to_light_unit;
+
             return emitted + attenuation * material_scattering_pdf(materials[hitId], r, rec, scattered) * trace_spheres(spheres, materials, n, scattered, depth + 1, inoutRaycount) / pdf;
         }
         else {
@@ -56,23 +79,16 @@ int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Textur
     materials[0].type = Material::Lambert;
     materials[0].albedo = {Texture::Checker, {0.0f, 0.0f, 0.0f}, odd, even};
 
-    spheres_soa.center[1] = {0.0f, 3.0f, 0.0f};
-    spheres_soa.radius[1] = 1.0f;
-    spheres_soa.inverse_radius[1] = 1.0f/1.0f;
+    spheres_soa.center[1] = light_center;
+    spheres_soa.radius[1] = light_radius;
+    spheres_soa.inverse_radius[1] = 1.0f/light_radius;
 
     materials[1].type = Material::Light;
-    materials[1].albedo = {Texture::Constant, make_vec3(7.0f, 7.0f, 7.0f), nullptr, nullptr};
-
-    spheres_soa.center[2] = {10.0f, 3.0f, 0.0f};
-    spheres_soa.radius[2] = 1.0f;
-    spheres_soa.inverse_radius[2] = 1.0f/1.0f;
-
-    materials[2].type = Material::Light;
-    materials[2].albedo = {Texture::Constant, make_vec3(7.0f, 7.0f, 7.0f), nullptr, nullptr};
+    materials[1].albedo = {Texture::Constant, make_vec3(1.0f, 1.0f, 1.0f), nullptr, nullptr};
 
     int max = (int)sqrt(max_spheres) / 2;
 
-    int i = 3;
+    int i = 2;
 
     vec3 limit = {4.0f, 0.2f, 0.0f};
     for (int a = -max; a < max; a++) {
