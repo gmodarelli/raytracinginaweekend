@@ -3,14 +3,14 @@
 #include "vec3.h"
 #include "ray.h"
 
-struct SpheresSoA {
+struct Spheres {
     vec3* center;
     float* radius;
     float* inverse_radius;
 };
 
-SpheresSoA SpheresSoAInit(int count) {
-    SpheresSoA spheres;
+Spheres SpheresInit(int count) {
+    Spheres spheres;
     spheres.center = new vec3[count];
     spheres.radius = new float[count];
     spheres.inverse_radius = new float[count];
@@ -18,7 +18,7 @@ SpheresSoA SpheresSoAInit(int count) {
     return spheres;
 }
 
-bool hit_spheres(const SpheresSoA& spheres, int spheres_count, const ray& r, float t_min, float t_max, hit_record& rec, int& outId) {
+bool hit_spheres(const Spheres& spheres, int spheres_count, const ray& r, float t_min, float t_max, hit_record& rec, int& outId) {
     int id = -1;
     float closest_so_far = t_max;
 
@@ -43,8 +43,6 @@ bool hit_spheres(const SpheresSoA& spheres, int spheres_count, const ray& r, flo
             }
         }
     }
-
-    vec3 center;
 
     if (id != -1) {
         rec.t = closest_so_far;

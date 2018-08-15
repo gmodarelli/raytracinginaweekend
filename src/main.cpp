@@ -9,17 +9,19 @@
 #include "util.h"
 #include <chrono>
 
-const int image_width = 800;
-const int image_height = 600;
+const int image_width = 400;
+const int image_height = 200;
 const float inverse_image_width = 1.0f / (float)image_width;
 const float inverse_image_height = 1.0f / (float)image_height;
-const int max_depth = 50;
-const int samples_per_pixel = 20;
+const int max_depth = 20;
+const int samples_per_pixel = 1;
 
 const float minT = 0.001f;
 const float maxT = 1.0e7f;
 
-vec3 trace_spheres(SpheresSoA& spheres, Material materials[], int n, const ray& r, int depth, int& inoutRaycount) {
+const int max_spheres = 500;
+
+vec3 trace_spheres(Spheres& spheres, Material materials[], int n, const ray& r, int depth, int& inoutRaycount) {
     ++inoutRaycount;
     hit_record rec;
     int hitId;
@@ -43,14 +45,14 @@ vec3 trace_spheres(SpheresSoA& spheres, Material materials[], int n, const ray& 
     }
 }
 
-void random_scene(int& spheres_count, SpheresSoA& spheres_soa, Material* materials, Texture* odd, Texture* even) {
+int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Texture* even) {
     spheres_soa.center[0] = {0.0f, -1000.0f, 0.0f};
     spheres_soa.radius[0] = 1000.f;
     spheres_soa.inverse_radius[0] = 1.0f/1000.f;
 
     materials[0].type = Material::Lambert;
     materials[0].albedo = {Texture::Checker, {0.0f, 0.0f, 0.0f}, odd, even};
-    int max = 11;
+    int max = (int)sqrt(max_spheres) / 2;
 
     int i = 1;
 
@@ -60,8 +62,6 @@ void random_scene(int& spheres_count, SpheresSoA& spheres_soa, Material* materia
             float choose_mat = random_float();
             vec3 center = make_vec3(a + 0.9f * random_float(), 0.2f, b + 0.9f * random_float());
             if (length(center - limit) > 0.9f) {
-                i += 1;
-
                 if (choose_mat < 0.8f) { // diffuse
                     spheres_soa.center[i] = center;
                     spheres_soa.radius[i] = 0.2f;
@@ -87,6 +87,8 @@ void random_scene(int& spheres_count, SpheresSoA& spheres_soa, Material* materia
                     materials[i].type = Material::Dielectric;
                     materials[i].ref_idx = 1.5f; 
                 }
+
+                i += 1;
             }
         }
     }
@@ -116,7 +118,8 @@ void random_scene(int& spheres_count, SpheresSoA& spheres_soa, Material* materia
     materials[i].albedo = {Texture::Constant, make_vec3(0.7f, 0.6f, 0.5f), nullptr, nullptr};
     materials[i].fuzz = 0.0;
 
-    spheres_count = i;
+    // NOTE: i is an index
+    return i + 1;
 }
 
 int main() {
@@ -130,15 +133,15 @@ int main() {
 
     camera cam = default_camera(lookfrom, lookat, up, 20, float(image_width) / float(image_height), aperture, dist_to_focus);
 
-    int spheres_count = 500;
-    Material materials[501];
-    SpheresSoA spheres_soa = SpheresSoAInit(501);
+    Material materials[max_spheres];
+    Spheres spheres_soa = SpheresInit(max_spheres);
 
     Texture texture_odd = { Texture::Constant, make_vec3(0.2, 0.3, 0.1), nullptr, nullptr };
     Texture texture_even = { Texture::Constant, make_vec3(0.9, 0.9, 0.9), nullptr, nullptr };
     auto scene_t0 = std::chrono::high_resolution_clock::now();
 
-    random_scene(spheres_count, spheres_soa, materials, &texture_odd, &texture_even);
+    int spheres_count = random_scene(spheres_soa, materials, &texture_odd, &texture_even);
+    std::cerr << spheres_count << std::endl;
 
     auto scene_t1 = std::chrono::high_resolution_clock::now();
 
@@ -155,7 +158,7 @@ int main() {
                 float u = float(i + random_float()) * inverse_image_width;
                 float v = float(j + random_float()) * inverse_image_height;
                 ray r = camera_get_ray(cam, u, v);
-                tmp_col = tmp_col + trace_spheres(spheres_soa, materials, spheres_count + 1, r, 0, rayCount);
+                tmp_col = tmp_col + trace_spheres(spheres_soa, materials, spheres_count, r, 0, rayCount);
             }
 
             tmp_col = tmp_col / float(samples_per_pixel);
