@@ -1,5 +1,5 @@
 pushd build
 
-cl /Zi /Od ../src/main.cpp
+cl /Zi /Od /NOLOGO ../src/main.cpp
 
 popd

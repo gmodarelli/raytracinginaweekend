@@ -13,13 +13,13 @@ const int image_width = 400;
 const int image_height = 200;
 const float inverse_image_width = 1.0f / (float)image_width;
 const float inverse_image_height = 1.0f / (float)image_height;
-const int max_depth = 20;
-const int samples_per_pixel = 1;
+const int max_depth = 50;
+const int samples_per_pixel = 100;
 
 const float minT = 0.001f;
 const float maxT = 1.0e7f;
 
-const int max_spheres = 500;
+const int max_spheres = 50;
 
 vec3 trace_spheres(Spheres& spheres, Material materials[], int n, const ray& r, int depth, int& inoutRaycount) {
     ++inoutRaycount;
@@ -29,19 +29,21 @@ vec3 trace_spheres(Spheres& spheres, Material materials[], int n, const ray& r, 
     if (hit_spheres(spheres, n, r, minT, maxT, rec, hitId)) {
         ray scattered;
         vec3 attenuation;
-        if (depth < max_depth && scatter(materials[hitId], r, rec, attenuation, scattered)) {
-            return attenuation * trace_spheres(spheres, materials, n, scattered, depth + 1, inoutRaycount);
+        vec3 emitted = material_emit(materials[hitId], rec.u, rec.v, rec.p);
+        if (depth < max_depth && material_scatter(materials[hitId], r, rec, attenuation, scattered)) {
+            return emitted + attenuation * trace_spheres(spheres, materials, n, scattered, depth + 1, inoutRaycount);
         }
         else {
-            vec3 black = {0, 0, 0};
-            return black;
+            return emitted;
         }
     } else {
-        vec3 unit_direction = unit_vector(r.direction);
-        float t = 0.5f * (unit_direction.y + 1.0f);
-        vec3 white = {1.0f, 1.0f, 1.0f};
-        vec3 blue = {0.5f, 0.7f, 1.0f};
-        return (1.0f - t) * white + t * blue;
+        // vec3 unit_direction = unit_vector(r.direction);
+        // float t = 0.5f * (unit_direction.y + 1.0f);
+        // vec3 white = {1.0f, 1.0f, 1.0f};
+        // vec3 blue = {0.5f, 0.7f, 1.0f};
+        // return (1.0f - t) * white + t * blue;
+
+        return {0, 0, 0};
     }
 }
 
@@ -52,9 +54,24 @@ int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Textur
 
     materials[0].type = Material::Lambert;
     materials[0].albedo = {Texture::Checker, {0.0f, 0.0f, 0.0f}, odd, even};
+
+    spheres_soa.center[1] = {0.0f, 3.0f, 0.0f};
+    spheres_soa.radius[1] = 1.0f;
+    spheres_soa.inverse_radius[1] = 1.0f/1.0f;
+
+    materials[1].type = Material::Light;
+    materials[1].albedo = {Texture::Constant, make_vec3(7.0f, 7.0f, 7.0f), nullptr, nullptr};
+
+    spheres_soa.center[2] = {10.0f, 3.0f, 0.0f};
+    spheres_soa.radius[2] = 1.0f;
+    spheres_soa.inverse_radius[2] = 1.0f/1.0f;
+
+    materials[2].type = Material::Light;
+    materials[2].albedo = {Texture::Constant, make_vec3(7.0f, 7.0f, 7.0f), nullptr, nullptr};
+
     int max = (int)sqrt(max_spheres) / 2;
 
-    int i = 1;
+    int i = 3;
 
     vec3 limit = {4.0f, 0.2f, 0.0f};
     for (int a = -max; a < max; a++) {
@@ -118,6 +135,7 @@ int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Textur
     materials[i].albedo = {Texture::Constant, make_vec3(0.7f, 0.6f, 0.5f), nullptr, nullptr};
     materials[i].fuzz = 0.0;
 
+
     // NOTE: i is an index
     return i + 1;
 }
@@ -125,7 +143,7 @@ int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Textur
 int main() {
     std::cout << "P3\n" << image_width << " " << image_height << "\n255\n";
 
-    vec3 lookfrom = {13, 2, 3};
+    vec3 lookfrom = {13, 5, 10};
     vec3 lookat = {0, 0, 0};
     vec3 up = {0, 1, 0};
     float dist_to_focus = 10.0;

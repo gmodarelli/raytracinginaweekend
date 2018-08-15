@@ -37,19 +37,27 @@ float schlick(float cosine, float ref_idx) {
 }
 
 struct Material {
-  enum Type { Lambert, Metal, Dielectric };
+  enum Type { Lambert, Metal, Dielectric, Light };
   Type type;
   Texture albedo;
   float ref_idx;
   float fuzz;
 };
 
-bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) {
+vec3 material_emit(const Material& mat, float u, float v, const vec3& p) {
+    if (mat.type == Material::Light) {
+        return texture_value(mat.albedo, u, v, p);
+    } else {
+        return {0, 0, 0};
+    }
+}
+
+bool material_scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) {
   if (mat.type == Material::Lambert) {
     vec3 target = rec.p + rec.normal + random_point_in_unit_sphere();
     scattered.origin = rec.p;
     scattered.direction = target - rec.p;
-    attenuation = texture_value(mat.albedo, 0, 0, rec.p);
+    attenuation = texture_value(mat.albedo, rec.u, rec.v, rec.p);
 
     return true;
   }
@@ -57,7 +65,7 @@ bool scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& 
     vec3 reflected = reflect(unit_vector(r_in.direction), rec.normal);
     scattered.origin = rec.p;
     scattered.direction = reflected + mat.fuzz * random_point_in_unit_sphere();
-    attenuation = texture_value(mat.albedo, 0, 0, rec.p);
+    attenuation = texture_value(mat.albedo, rec.u, rec.v, rec.p);
     float result = dot(scattered.direction, rec.normal);
     return (result > 0);
   }

@@ -3,6 +3,10 @@
 #include "vec3.h"
 #include "ray.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif // M_PI
+
 struct Spheres {
     vec3* center;
     float* radius;
@@ -16,6 +20,13 @@ Spheres SpheresInit(int count) {
     spheres.inverse_radius = new float[count];
 
     return spheres;
+}
+
+void sphere_uv(const vec3& normal, float& outU, float& outV) {
+    float phi = atan2(normal.z, normal.x);
+    float theta = asin(normal.y);
+    outU = 1 - (phi + M_PI) / (2 * M_PI);
+    outV = (theta + M_PI / 2) / M_PI;
 }
 
 bool hit_spheres(const Spheres& spheres, int spheres_count, const ray& r, float t_min, float t_max, hit_record& rec, int& outId) {
@@ -48,6 +59,7 @@ bool hit_spheres(const Spheres& spheres, int spheres_count, const ray& r, float 
         rec.t = closest_so_far;
         rec.p = ray_point_at_parameter(r, rec.t);
         rec.normal = (rec.p - spheres.center[id]) * spheres.inverse_radius[id];
+        sphere_uv(rec.normal, rec.u, rec.v);
         outId = id;
         return true;
     }
