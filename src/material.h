@@ -4,14 +4,34 @@
 #include "ray.h"
 #include "util.h"
 #include "texture.h"
+#include "onb.h"
 
 vec3 random_point_in_unit_sphere() {
   vec3 p;
   do {
     p = 2.0 * make_vec3(random_float(), random_float(), random_float()) - make_vec3(1, 1, 1);
-  } while (squared_length(p) >= 1.0);
+  } while (dot(p, p) >= 1.0);
 
   return p;
+}
+
+vec3 random_point_on_unit_shpere() {
+    vec3 p;
+    do {
+        p = 2.0f * make_vec3(random_float(), random_float(), random_float()) - make_vec3(1.0f, 1.0f, 1.0f);
+    } while (dot(p, p) >= 1.0);
+    return unit_vector(p);
+}
+
+vec3 random_cosine_direction() {
+    float r1 = random_float();
+    float r2 = random_float();
+    float z = sqrt(1 - r2);
+    float phi = 2 * M_PI * r1;
+    float x = cos(phi) * 2 * sqrt(r2);
+    float y = sin(phi) * 2 * sqrt(r2);
+
+    return make_vec3(x, y, z);
 }
 
 vec3 reflect(const vec3& v, const vec3& n) {
@@ -52,14 +72,24 @@ vec3 material_emit(const Material& mat, float u, float v, const vec3& p) {
     }
 }
 
-bool material_scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered) {
-  if (mat.type == Material::Lambert) {
-    vec3 target = rec.p + rec.normal + random_point_in_unit_sphere();
-    scattered.origin = rec.p;
-    scattered.direction = target - rec.p;
-    attenuation = texture_value(mat.albedo, rec.u, rec.v, rec.p);
+float material_scattering_pdf(const Material& mat, const ray& r_in, const hit_record& rec, const ray& scattered) {
+    float cosine = dot(rec.normal, unit_vector(scattered.direction));
+    if (cosine < 0) cosine = 0;
+    return cosine / M_PI;
+}
 
-    return true;
+bool material_scatter(const Material& mat, const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered, float& pdf) {
+    if (mat.type == Material::Lambert) {
+        Onb uvw;
+        uvw.build_from_w(rec.normal);
+        vec3 direction = uvw.local(random_cosine_direction());
+
+        scattered.origin = rec.p;
+        scattered.direction = unit_vector(direction);
+        attenuation = texture_value(mat.albedo, rec.u, rec.v, rec.p);
+        pdf = dot(uvw.w(), scattered.direction) / M_PI;
+
+        return true;
   }
   else if (mat.type == Material::Metal) {
     vec3 reflected = reflect(unit_vector(r_in.direction), rec.normal);

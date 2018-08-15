@@ -9,8 +9,8 @@
 #include "util.h"
 #include <chrono>
 
-const int image_width = 400;
-const int image_height = 200;
+const int image_width = 800;
+const int image_height = 600;
 const float inverse_image_width = 1.0f / (float)image_width;
 const float inverse_image_height = 1.0f / (float)image_height;
 const int max_depth = 50;
@@ -19,7 +19,7 @@ const int samples_per_pixel = 100;
 const float minT = 0.001f;
 const float maxT = 1.0e7f;
 
-const int max_spheres = 50;
+const int max_spheres = 500;
 
 vec3 trace_spheres(Spheres& spheres, Material materials[], int n, const ray& r, int depth, int& inoutRaycount) {
     ++inoutRaycount;
@@ -30,8 +30,9 @@ vec3 trace_spheres(Spheres& spheres, Material materials[], int n, const ray& r, 
         ray scattered;
         vec3 attenuation;
         vec3 emitted = material_emit(materials[hitId], rec.u, rec.v, rec.p);
-        if (depth < max_depth && material_scatter(materials[hitId], r, rec, attenuation, scattered)) {
-            return emitted + attenuation * trace_spheres(spheres, materials, n, scattered, depth + 1, inoutRaycount);
+        float pdf;
+        if (depth < max_depth && material_scatter(materials[hitId], r, rec, attenuation, scattered, pdf)) {
+            return emitted + attenuation * material_scattering_pdf(materials[hitId], r, rec, scattered) * trace_spheres(spheres, materials, n, scattered, depth + 1, inoutRaycount) / pdf;
         }
         else {
             return emitted;
@@ -79,44 +80,44 @@ int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Textur
             float choose_mat = random_float();
             vec3 center = make_vec3(a + 0.9f * random_float(), 0.2f, b + 0.9f * random_float());
             if (length(center - limit) > 0.9f) {
-                if (choose_mat < 0.8f) { // diffuse
+                // if (choose_mat < 0.8f) { // diffuse
                     spheres_soa.center[i] = center;
                     spheres_soa.radius[i] = 0.2f;
                     spheres_soa.inverse_radius[i] = 1.0f/0.2f;
 
                     materials[i].type = Material::Lambert;
                     materials[i].albedo = {Texture::Constant, make_vec3(random_float() * random_float(), random_float() * random_float(), random_float() * random_float()), nullptr, nullptr};
-                }
-                else if (choose_mat < 0.95f) { // metal
-                    spheres_soa.center[i] = center;
-                    spheres_soa.radius[i] = 0.2f;
-                    spheres_soa.inverse_radius[i] = 1.0f/0.2f;
+                // }
+                // else if (choose_mat < 0.95f) { // metal
+                //    spheres_soa.center[i] = center;
+                //    spheres_soa.radius[i] = 0.2f;
+                //    spheres_soa.inverse_radius[i] = 1.0f/0.2f;
 
-                    materials[i].type = Material::Metal;
-                    materials[i].albedo = {Texture::Constant, make_vec3(0.5f * (1.0f + random_float()), 0.5f * (1.0f + random_float()), 0.5f * (1.0f + random_float())), nullptr, nullptr};
-                    materials[i].fuzz = 0.5f * random_float();
-                }
-                else {
-                    spheres_soa.center[i] = center;
-                    spheres_soa.radius[i] = 0.2f;
-                    spheres_soa.inverse_radius[i] = 1.0f/0.2f;
+                    // materials[i].type = Material::Metal;
+                    // materials[i].albedo = {Texture::Constant, make_vec3(0.5f * (1.0f + random_float()), 0.5f * (1.0f + random_float()), 0.5f * (1.0f + random_float())), nullptr, nullptr};
+                    // materials[i].fuzz = 0.5f * random_float();
+                // }
+                //else {
+                    // spheres_soa.center[i] = center;
+                    // spheres_soa.radius[i] = 0.2f;
+                    // spheres_soa.inverse_radius[i] = 1.0f/0.2f;
 
-                    materials[i].type = Material::Dielectric;
-                    materials[i].ref_idx = 1.5f; 
-                }
+                    // materials[i].type = Material::Dielectric;
+                    // materials[i].ref_idx = 1.5f; 
+                // }
 
                 i += 1;
             }
         }
     }
 
-    i += 1;
-    spheres_soa.center[i] = {0.0f, 1.0f, 0.0f};
-    spheres_soa.radius[i] = 1.0f;
-    spheres_soa.inverse_radius[i] = 1.0f;
+    // i += 1;
+    // spheres_soa.center[i] = {0.0f, 1.0f, 0.0f};
+    // spheres_soa.radius[i] = 1.0f;
+    // spheres_soa.inverse_radius[i] = 1.0f;
 
-    materials[i].type = Material::Dielectric;
-    materials[i].ref_idx = 1.5;
+    // materials[i].type = Material::Dielectric;
+    // materials[i].ref_idx = 1.5;
 
     i += 1;
     spheres_soa.center[i] = {-4.0f, 1.0f, 0.0f};
@@ -126,14 +127,14 @@ int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Textur
     materials[i].type = Material::Lambert;
     materials[i].albedo = {Texture::Constant, make_vec3(0.4, 0.2, 0.1), nullptr, nullptr};
 
-    i += 1;
-    spheres_soa.center[i] = {4.0f, 1.0f, 0.0f};
-    spheres_soa.radius[i] = 1.0f;
-    spheres_soa.inverse_radius[i] = 1.0f;
+    // i += 1;
+    // spheres_soa.center[i] = {4.0f, 1.0f, 0.0f};
+    // spheres_soa.radius[i] = 1.0f;
+    // spheres_soa.inverse_radius[i] = 1.0f;
 
-    materials[i].type = Material::Metal;
-    materials[i].albedo = {Texture::Constant, make_vec3(0.7f, 0.6f, 0.5f), nullptr, nullptr};
-    materials[i].fuzz = 0.0;
+    // materials[i].type = Material::Metal;
+    // materials[i].albedo = {Texture::Constant, make_vec3(0.7f, 0.6f, 0.5f), nullptr, nullptr};
+    // materials[i].fuzz = 0.0;
 
 
     // NOTE: i is an index
