@@ -66,5 +66,4 @@ bool hit_spheres(const Spheres& spheres, int spheres_count, const ray& r, float 
 
     return false;
 }
-
 #endif // SPHERE_H

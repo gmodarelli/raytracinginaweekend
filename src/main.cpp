@@ -9,12 +9,20 @@
 #include "util.h"
 #include <chrono>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#include <stdio.h>
+#include <stdlib.h>
+
 const int image_width = 400;
 const int image_height = 200;
 const float inverse_image_width = 1.0f / (float)image_width;
 const float inverse_image_height = 1.0f / (float)image_height;
 const int max_depth = 50;
 const int samples_per_pixel = 20;
+
+const int imagesize = 3 * image_width * image_height;
+unsigned char * image_buffer = (unsigned char *) malloc(imagesize);
 
 const float minT = 0.001f;
 const float maxT = 1.0e7f;
@@ -158,7 +166,7 @@ int random_scene(Spheres& spheres_soa, Material* materials, Texture* odd, Textur
 }
 
 int main() {
-    std::cout << "P3\n" << image_width << " " << image_height << "\n255\n";
+    memset(image_buffer, 157, imagesize);
 
     vec3 lookfrom = {13, 5, 10};
     vec3 lookat = {0, 0, 0};
@@ -176,12 +184,12 @@ int main() {
     auto scene_t0 = std::chrono::high_resolution_clock::now();
 
     int spheres_count = random_scene(spheres_soa, materials, &texture_odd, &texture_even);
-    std::cerr << spheres_count << std::endl;
+    std::cout << spheres_count << std::endl;
 
     auto scene_t1 = std::chrono::high_resolution_clock::now();
 
     auto scene_duration = std::chrono::duration_cast<std::chrono::microseconds>(scene_t1 - scene_t0);
-    std::cerr << "Scene built in " << scene_duration.count() << "us" << std::endl;
+    std::cout << "Scene built in " << scene_duration.count() << "us" << std::endl;
 
     int rayCount = 0;
     auto t0 = std::chrono::high_resolution_clock::now();
@@ -204,14 +212,24 @@ int main() {
             int ig = int(255.99 * col.y);
             int ib = int(255.99 * col.z);
 
-            std::cout << ir << " " << ig << " " << ib << "\n";
+            image_buffer[(i + (image_height - 1 - j) * image_width) * 3 + 0] = ir;
+            image_buffer[(i + (image_height - 1 - j) * image_width) * 3 + 1] = ig;
+            image_buffer[(i + (image_height - 1 - j) * image_width) * 3 + 2] = ib;
         }
     }
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0);
-    std::cerr << "Traced rays: " << rayCount << std::endl;
-    std::cerr << "Duration: " << duration.count() << "ms" << std::endl;
-    std::cerr << "MRays/s: " << (rayCount / duration.count() *  1.0e-3f) << std::endl;
+    std::cout << "Traced rays: " << rayCount << std::endl;
+    std::cout << "Duration: " << duration.count() << "ms" << std::endl;
+    std::cout << "MRays/s: " << (rayCount / duration.count() *  1.0e-3f) << std::endl;
+
+    // TODO: Take the image path as param
+    if (stbi_write_bmp("output.bmp", image_width, image_height, 3, (void *)image_buffer) != 0) {
+        std::cout << "Image written to disk" << std::endl;
+    } else {
+        std::cerr << "Error!" << std::endl;
+    }
+    free(image_buffer);
 }
